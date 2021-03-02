@@ -1,6 +1,7 @@
 const { parse } = require('url');
 
-const jose = require('jose');
+const jose = require('jose2');
+const { default: parseJwk } = require('jose/jwk/parse'); // eslint-disable-line import/no-unresolved
 const sinon = require('sinon');
 const { expect } = require('chai');
 
@@ -348,7 +349,7 @@ describe('request parameter features', () => {
             response_type: 'code',
             redirect_uri: 'https://client.example.com/cb',
             scope: 'openid',
-          }, null, 'none', { issuer: 'client', audience: this.provider.issuer }).then((request) => this.wrap({
+          }, null, 'none', { issuer: 123678, audience: this.provider.issuer }).then((request) => this.wrap({
             agent: this.agent,
             route,
             verb,
@@ -486,9 +487,9 @@ describe('request parameter features', () => {
       });
 
       it('can accept Request Objects issued within acceptable system clock skew', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({
-          alg: 'HS256',
-        });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         i(this.provider).configuration().clockTolerance = 10;
         return JWT.sign({
           iat: Math.ceil(Date.now() / 1000) + 5,
@@ -511,9 +512,9 @@ describe('request parameter features', () => {
       });
 
       it('works with signed by an actual DSA', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({
-          alg: 'HS256',
-        });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         return JWT.sign({
           client_id: 'client-with-HS-sig',
           response_type: 'code',
@@ -534,9 +535,9 @@ describe('request parameter features', () => {
       });
 
       it('rejects HMAC based requests when signed with an expired secret', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig-expired')).keystore.get({
-          alg: 'HS256',
-        });
+        const client = await this.provider.Client.find('client-with-HS-sig-expired');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
 
         const spy = sinon.spy();
         this.provider.once(errorEvt, spy);
@@ -568,9 +569,9 @@ describe('request parameter features', () => {
       });
 
       it('supports optional replay prevention', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({
-          alg: 'HS256',
-        });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
 
         const request = await JWT.sign({
           response_type: 'code',
@@ -940,9 +941,9 @@ describe('request parameter features', () => {
         const spy = sinon.spy();
         this.provider.once(errorEvt, spy);
 
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({
-          alg: 'HS256',
-        });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         return JWT.sign({
           client_id: 'client',
           response_type: 'code',
@@ -998,9 +999,9 @@ describe('request parameter features', () => {
       });
 
       it('handles unrecognized parameters', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({
-          alg: 'HS256',
-        });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         return JWT.sign({
           client_id: 'client-with-HS-sig',
           unrecognized: true,

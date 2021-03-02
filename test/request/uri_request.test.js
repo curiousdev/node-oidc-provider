@@ -1,6 +1,7 @@
 const { parse } = require('url');
 
-const jose = require('jose');
+const jose = require('jose2');
+const { default: parseJwk } = require('jose/jwk/parse'); // eslint-disable-line import/no-unresolved
 const sinon = require('sinon').createSandbox();
 const nock = require('nock');
 const { expect } = require('chai');
@@ -65,7 +66,9 @@ describe('request Uri features', () => {
       after(function () { return this.logout(); });
 
       it('works with signed by an actual alg (https)', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({ alg: 'HS256' });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         const request = await JWT.sign({
           client_id: 'client-with-HS-sig',
           response_type: 'code',
@@ -92,7 +95,9 @@ describe('request Uri features', () => {
       });
 
       it('works with signed by an actual alg (http)', async function () {
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({ alg: 'HS256' });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         const request = await JWT.sign({
           client_id: 'client-with-HS-sig',
           response_type: 'code',
@@ -596,7 +601,9 @@ describe('request Uri features', () => {
         const spy = sinon.spy();
         this.provider.once(error, spy);
 
-        const key = (await this.provider.Client.find('client-with-HS-sig')).keystore.get({ alg: 'HS256' });
+        const client = await this.provider.Client.find('client-with-HS-sig');
+        let [key] = client.symmetricKeyStore.selectForSign({ alg: 'HS256' });
+        key = await parseJwk(key);
         const request = await JWT.sign({
           client_id: 'client',
           response_type: 'code',
